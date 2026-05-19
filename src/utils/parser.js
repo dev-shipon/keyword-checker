@@ -6,25 +6,31 @@ export const parseCategorizedKeywords = (text) => {
   let keywordMap = [];
 
   if (lines.length === 1) {
-    return firstLineCells.map(k => ({ category: 'Keyword', text: k.trim() })).filter(k => k.text);
+    // Single line - split by tab and treat as simple keywords under 'Keyword'
+    return firstLineCells
+      .flatMap(k => k.split(',').map(subVal => subVal.trim()))
+      .filter(Boolean)
+      .map(text => ({ category: 'Keyword', text }));
   }
 
   lines.forEach((line, rowIndex) => {
+    // Skip the header row entirely from being added as keywords
+    if (rowIndex === 0) return;
+
     const cells = line.split('\t');
     cells.forEach((cell, colIndex) => {
       const value = cell.trim();
       if (!value) return;
 
-      // Skip common headers if they appear as values in the first row
-      if (rowIndex === 0 && (value.toLowerCase().includes('keyword') || value.toLowerCase().includes('entity') || value.toLowerCase().includes('remark'))) {
-        return;
-      }
-
-      let category = firstLineCells[colIndex] ? firstLineCells[colIndex].trim() : `Column ${colIndex + 1}`;
+      const category = firstLineCells[colIndex] ? firstLineCells[colIndex].trim() : `Column ${colIndex + 1}`;
       // Skip remark columns
       if (category.toLowerCase().includes('remark')) return;
 
-      keywordMap.push({ category: category, text: value });
+      // Split by comma if the cell has comma-separated keywords (e.g. "Meta Tags, Backlinks")
+      const subValues = value.split(',').map(v => v.trim()).filter(Boolean);
+      subValues.forEach(subVal => {
+        keywordMap.push({ category: category, text: subVal });
+      });
     });
   });
 
@@ -40,7 +46,10 @@ export const checkKeywordUsage = (keywordData, content) => {
     if (!groups[item.category]) groups[item.category] = [];
     
     const escapedKeyword = item.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'gi');
+    // Using Unicode property escapes for accurate word boundaries across all languages (like English & Bengali)
+    // (?<![\p{L}\p{N}_]) matches when NOT preceded by any letter, number, or underscore
+    // (?![\p{L}\p{N}_]) matches when NOT followed by any letter, number, or underscore
+    const regex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedKeyword}(?![\\p{L}\\p{N}_])`, 'ui');
     const isFound = regex.test(content);
     
     const newItem = { ...item, isFound };
@@ -52,3 +61,4 @@ export const checkKeywordUsage = (keywordData, content) => {
 
   return { groups, totalUsed, totalMissing };
 };
+

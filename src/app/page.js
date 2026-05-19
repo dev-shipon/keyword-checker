@@ -3,6 +3,7 @@
 import Header from '@/components/KeywordChecker/Header';
 import InputSection from '@/components/KeywordChecker/InputSection';
 import Dashboard from '@/components/KeywordChecker/Dashboard';
+import ContentHighlighter from '@/components/KeywordChecker/ContentHighlighter';
 import { useKeywordChecker } from '@/hooks/useKeywordChecker';
 
 export default function KeywordCheckerPage() {
@@ -40,6 +41,13 @@ export default function KeywordCheckerPage() {
             <Dashboard results={results} stats={stats} />
           </div>
         </div>
+
+        {/* Content Visualizer Section */}
+        {results && content && (
+          <div className="mt-12">
+            <ContentHighlighter results={results} content={content} />
+          </div>
+        )}
 
         {/* Footer info */}
         <footer className="mt-24 pt-8 border-t border-slate-100 text-center">
